@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"name": "Projet Parcours",
+			"path": ".."
+		},
+		{
+			"name": "template",
+			"path": "../../template"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"calculsin": "c",
+			"stdio.h": "c"
+		}
+	}
+}
