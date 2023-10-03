@@ -1,0 +1,5 @@
+{
+    "port": "COM4",
+    "board": "emoro:avr:emoro2560",
+    "sketch": "src\\main.ino"
+}

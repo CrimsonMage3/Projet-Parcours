@@ -10,88 +10,10 @@ int portDetecteurProximRouge = 7;
 int compteurDroite = 0;
 int compteurGauche = 0;
 
-void setup()
-{
-  BoardInit();
-
-  pinMode(portBruitAmbiant, INPUT);
-  pinMode(portBruitEntendue, INPUT);
-
-  pinMode(portDetecteurProximVert, INPUT);
-  pinMode(portDetecteurProximRouge, INPUT);
-
-  Serial.begin(9600);
-
-  detectionSifflet(); // Attend le son du siflet
-}
-
-void loop()
-{
-
-  if (digitalRead(portDetecteurProximRouge) == digitalRead(portDetecteurProximVert) == 1) // Si rien devant avance
-  {
-    AVANCER();
-  }
-  else
-  {
-    // Tourner droite
-    if (digitalRead(portDetecteurProximRouge) == digitalRead(portDetecteurProximVert) == 1) // Si après tourner à droite rien devant avance
-    {
-      AVANCER();
-    }
-    else
-    {
-      // Tourner gauche 2 fois / tourner 180 degré
-      if (digitalRead(portDetecteurProximRouge) == digitalRead(portDetecteurProximVert) == 1) // Si apès tourner à gauche deux fois rien devant avance
-      {
-        AVANCER();
-      }
-      else
-      {              // FIN
-        while (true) // Gay baby jail
-        {
-        }
-      }
-    }
-  }
-  int compteur = 0; // Reset compteur
-
-  delay(10); // Delais pour décharger le CPU
-}
-
-void AVANCER()
-{
-
-  while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
-  {
-    MOTOR_SetSpeed(RIGHT, 0.5); // Maitre
-
-    MOTOR_SetSpeed(LEFT, (0.5 + PID())); // Esclave}
-    delay(500);
-  }
-}
-
-void TOURNERDROITE()
-{
-  while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
-  {
-    MOTOR_SetSpeed(RIGHT, -0.5); // Maitre
-
-    MOTOR_SetSpeed(LEFT, (0.5 + PID())); // Esclave}
-    delay(500);
-  }
-}
-
-void TOURNER180()
-{
-  while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
-  {
-    MOTOR_SetSpeed(RIGHT, 0.5); // Maitre
-
-    MOTOR_SetSpeed(LEFT, (-0.5 - PID())); // Esclave}
-    delay(500);
-  }
-}
+int positionX = 2; // 1 = Gauche, 2 = Millieu, 3 = Droite
+int positionY = 1; //Début = 1, Fin = 10
+int orientation = -1; // Initialise l'orientation de départ, -1 = vers la gauche, 0 = tout droit, 1 = vers la droite
+                      // Le but d'utiliser un int est de faire en sorte que quand il avance la postition en x change selon l'orientation
 
 double PID()
 {
@@ -111,25 +33,171 @@ double PID()
   return k1 + k2;
 }
 
+void AVANCER()
+{
+  positionX += orientation;
+  if (orientation == 0)
+  {
+    positionY++;
+  }
+
+  while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
+  {
+    MOTOR_SetSpeed(RIGHT, 0.5); // Maitre
+
+    MOTOR_SetSpeed(LEFT, (0.5 + PID())); // Esclave}
+    delay(500);
+  }
+}
+
+void TOURNERDROITE()
+{
+  if (orientation = 0) // Si le robot est orienté vers le nord il aura une orientation vers la droite
+  {
+    orientation = 1;
+  }
+  else // Sinon il est orienté vers la gauche et reviens avec un orientation vers le nord
+  {
+    orientation = 0;
+  }
+  while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
+  {
+    MOTOR_SetSpeed(RIGHT, -0.5); // Maitre
+
+    MOTOR_SetSpeed(LEFT, (0.5 + PID())); // Esclave}
+    delay(500);
+  }
+}
+
+void TOURNERGAUCHE()
+{
+  if (orientation = 0) // Si le robot est orienté vers le nord il aura une orientation vers la droite
+  {
+    orientation = -1;
+  }
+  else // Sinon il est orienté vers la droite et reviens avec un orientation vers le nord
+  {
+    orientation = 0;
+  }
+  while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
+  {
+    MOTOR_SetSpeed(RIGHT, 0.5); // Maitre
+
+    MOTOR_SetSpeed(LEFT, (-0.5 - PID())); // Esclave}
+    delay(500);
+  }
+}
+
 void detectionSifflet()
 {
-  int i = 0;
 
-  while (i <= 20) // Détection sifflet
+  while ((A5 - A4) < 10)
   {
-
     float A4 = analogRead(portBruitAmbiant);
     float A5 = analogRead(portBruitEntendue);
-    /*
-        if ((A5 - A4) <= 5000)
+  }
+
+  delay(2000);
+}
+
+bool PasDetection()
+{
+
+  bool detectionMur = true;
+
+  if (digitalRead(portDetecteurProximRouge) == digitalRead(portDetecteurProximVert) == 1)
+  {
+    detectionMur = false;
+  }
+  return detectionMur;
+}
+
+void algorithme()
+{
+
+  if (positionY == 10)
+  { // Condition finale du robot, c'est à dire la postion 10 est la fin du labyrinthe
+
+    switch (positionX)
+    {
+    case 1: // À gauche dans le labyrinthe
+
+      if ((PasDetection() && (orientation = -1)) || (!PasDetection() && (orientation = 0))) // Si il regarde à gauche et il y a rien ou si il reguarde tout droit et voit quelque chose
+      {
+        TOURNERDROITE();
+        AVANCER();
+      }
+      else
+      {
+        AVANCER();
+      }
+
+      break;
+
+    case 2: // Au milieu dans le labyrinthe
+
+      if (PasDetection)
+      {
+
+        AVANCER();
+      }
+      else
+      {
+
+        TOURNERDROITE();
+
+        if (PasDetection)
         {
-          i++;
+
+          AVANCER();
         }
         else
         {
-          i = 0;
+          TOURNERGAUCHE();
+          TOURNERGAUCHE();
+          AVANCER();
         }
+      }
 
-        delay(100);*/
+      break;
+
+    case 3: // À droite dans le labyrinthe
+
+      if ((PasDetection() && (orientation = 1)) || (!PasDetection() && (orientation = 0))) // Si il regarde à gauche et il y a rien ou si il reguarde tout droit et voit quelque chose
+      {
+        TOURNERGAUCHE();
+        AVANCER();
+      }
+      else
+      {
+        AVANCER();
+      }
+
+      break;
+    }
   }
+}
+
+void setup()
+{
+  BoardInit();
+
+  pinMode(portBruitAmbiant, INPUT);
+  pinMode(portBruitEntendue, INPUT);
+
+  pinMode(portDetecteurProximVert, INPUT);
+  pinMode(portDetecteurProximRouge, INPUT);
+
+  // Serial.begin(115200);
+  // Serial.write("Début");
+  detectionSifflet(); // Attend le son du siflet
+}
+
+void loop()
+{
+
+  AVANCER();
+
+  int compteur = 0; // Reset compteur
+  delay(10);        // Delais pour décharger le CPU
 }
