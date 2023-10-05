@@ -10,9 +10,9 @@ int portDetecteurProximRouge = 7;
 int compteurDroite = 0;
 int compteurGauche = 0;
 
-int positionX = 2; // 1 = Gauche, 2 = Millieu, 3 = Droite
-int positionY = 1; //Début = 1, Fin = 10
-int orientation = -1; // Initialise l'orientation de départ, -1 = vers la gauche, 0 = tout droit, 1 = vers la droite
+int positionX = 2;    // 1 = Gauche, 2 = Millieu, 3 = Droite
+int positionY = 1;    // Début = 1, Fin = 10
+int orientation = -1; // Initialise l'orientation de départ, -1 = vers la gauche, 0 = tout droit, 1 = vers la droite, 2 vers le bas
                       // Le but d'utiliser un int est de faire en sorte que quand il avance la postition en x change selon l'orientation
 
 double PID()
@@ -21,8 +21,12 @@ double PID()
   float k1, k2 = 0;
   float KP = 0.001;
   float KI = 0.00002;
+
   compteurDroite += ENCODER_Read(RIGHT); // Ajoute la valeur au compteur de droite
   compteurGauche += ENCODER_Read(LEFT);  // Ajoute la valeur au compteur de gauche
+
+  // println(compteurDroite);
+  // println(compteurGauche);
 
   k1 = abs(ENCODER_ReadReset(RIGHT)) - abs(ENCODER_ReadReset(LEFT)); // Trouve le k1, différence encodeur sans cycle
   k2 = abs(compteurDroite) - abs(compteurGauche);                    // Trouve le k2, différence des compteurs
@@ -35,6 +39,7 @@ double PID()
 
 void AVANCER()
 {
+
   positionX += orientation;
   if (orientation == 0)
   {
@@ -43,16 +48,18 @@ void AVANCER()
 
   while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
   {
-    MOTOR_SetSpeed(RIGHT, 0.5); // Maitre
 
-    MOTOR_SetSpeed(LEFT, (0.5 + PID())); // Esclave}
+    MOTOR_SetSpeed(RIGHT, 0.5);          // Maitre
+    MOTOR_SetSpeed(LEFT, (0.5 + PID())); // Esclave
+
     delay(500);
   }
 }
 
 void TOURNERDROITE()
 {
-  if (orientation = 0) // Si le robot est orienté vers le nord il aura une orientation vers la droite
+
+  if (orientation == 0) // Si le robot est orienté vers le nord il aura une orientation vers la droite
   {
     orientation = 1;
   }
@@ -60,6 +67,7 @@ void TOURNERDROITE()
   {
     orientation = 0;
   }
+
   while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
   {
     MOTOR_SetSpeed(RIGHT, -0.5); // Maitre
@@ -71,7 +79,8 @@ void TOURNERDROITE()
 
 void TOURNERGAUCHE()
 {
-  if (orientation = 0) // Si le robot est orienté vers le nord il aura une orientation vers la droite
+
+  if (orientation == 0) // Si le robot est orienté vers le nord il aura une orientation vers la droite
   {
     orientation = -1;
   }
@@ -79,6 +88,7 @@ void TOURNERGAUCHE()
   {
     orientation = 0;
   }
+
   while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
   {
     MOTOR_SetSpeed(RIGHT, 0.5); // Maitre
@@ -91,10 +101,13 @@ void TOURNERGAUCHE()
 void detectionSifflet()
 {
 
+  float A4 = 0;
+  float A5 = 0;
+
   while ((A5 - A4) < 10)
   {
-    float A4 = analogRead(portBruitAmbiant);
-    float A5 = analogRead(portBruitEntendue);
+    A4 = analogRead(portBruitAmbiant);
+    A5 = analogRead(portBruitEntendue);
   }
 
   delay(2000);
@@ -105,7 +118,7 @@ bool PasDetection()
 
   bool detectionMur = true;
 
-  if (digitalRead(portDetecteurProximRouge) == digitalRead(portDetecteurProximVert) == 1)
+  if ((digitalRead(portDetecteurProximRouge)) == (digitalRead(portDetecteurProximVert) == 1))
   {
     detectionMur = false;
   }
@@ -122,7 +135,7 @@ void algorithme()
     {
     case 1: // À gauche dans le labyrinthe
 
-      if ((PasDetection() && (orientation = -1)) || (!PasDetection() && (orientation = 0))) // Si il regarde à gauche et il y a rien ou si il reguarde tout droit et voit quelque chose
+      if ((PasDetection() && (orientation == -1)) || (!PasDetection() && (orientation == 0))) // Si il regarde à gauche et il y a rien ou si il reguarde tout droit et voit quelque chose
       {
         TOURNERDROITE();
         AVANCER();
@@ -136,7 +149,7 @@ void algorithme()
 
     case 2: // Au milieu dans le labyrinthe
 
-      if (PasDetection)
+      if (PasDetection())
       {
 
         AVANCER();
@@ -146,7 +159,7 @@ void algorithme()
 
         TOURNERDROITE();
 
-        if (PasDetection)
+        if (PasDetection())
         {
 
           AVANCER();
@@ -163,7 +176,7 @@ void algorithme()
 
     case 3: // À droite dans le labyrinthe
 
-      if ((PasDetection() && (orientation = 1)) || (!PasDetection() && (orientation = 0))) // Si il regarde à gauche et il y a rien ou si il reguarde tout droit et voit quelque chose
+      if ((PasDetection() && (orientation == 1)) || (!PasDetection() && (orientation == 0))) // Si il regarde à gauche et il y a rien ou si il reguarde tout droit et voit quelque chose
       {
         TOURNERGAUCHE();
         AVANCER();
@@ -198,6 +211,6 @@ void loop()
 
   AVANCER();
 
-  int compteur = 0; // Reset compteur
+   // Reset compteur
   delay(10);        // Delais pour décharger le CPU
 }
