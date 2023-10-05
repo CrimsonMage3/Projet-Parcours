@@ -4,8 +4,8 @@
 int portBruitAmbiant = 4;
 int portBruitEntendue = 5;
 
-int portDetecteurProximVert = 6;
-int portDetecteurProximRouge = 7;
+int portDetecteurProximVert = 51;
+int portDetecteurProximRouge = 53;
 
 int compteurDroite = 0;
 int compteurGauche = 0;
@@ -15,23 +15,21 @@ int positionY = 1;    // Début = 1, Fin = 10
 int orientation = -1; // Initialise l'orientation de départ, -1 = vers la gauche, 0 = tout droit, 1 = vers la droite, 2 vers le bas
                       // Le but d'utiliser un int est de faire en sorte que quand il avance la postition en x change selon l'orientation
 
-double PID()
+float PID()
 {
 
-  float k1, k2 = 0;
-  float KP = 0.001;
+  float k1 = 0;
+  float k2 = 0;
+  float KP = 0.0006;
   float KI = 0.00002;
 
-  compteurDroite += ENCODER_Read(RIGHT); // Ajoute la valeur au compteur de droite
-  compteurGauche += ENCODER_Read(LEFT);  // Ajoute la valeur au compteur de gauche
+ // compteurDroite += abs(ENCODER_Read(RIGHT)); // Ajoute la valeur au compteur de droite
+ // compteurGauche += abs(ENCODER_Read(LEFT));  // Ajoute la valeur au compteur de gauche
 
-  // println(compteurDroite);
-  // println(compteurGauche);
+ // k1 = 1 / 0.1 * (abs(ENCODER_ReadReset(RIGHT)) - abs(ENCODER_ReadReset(LEFT))); // Trouve le k1, différence encodeur sans cycle
+ // k2 = 1 / 0.1 * (abs(compteurDroite) - abs(compteurGauche));                    // Trouve le k2, différence des compteurs
 
-  k1 = abs(ENCODER_ReadReset(RIGHT)) - abs(ENCODER_ReadReset(LEFT)); // Trouve le k1, différence encodeur sans cycle
-  k2 = abs(compteurDroite) - abs(compteurGauche);                    // Trouve le k2, différence des compteurs
-
-  k1 *= KP;
+  k1 = k1 * KP;
   k2 *= KI;
 
   return k1 + k2;
@@ -46,13 +44,14 @@ void AVANCER()
     positionY++;
   }
 
-  while (compteurDroite <= 50000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
+  while (ENCODER_Read(RIGHT) <= 12000) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
   {
+    
+    MOTOR_SetSpeed(RIGHT, 0.25); // Maitre
 
-    MOTOR_SetSpeed(RIGHT, 0.5);          // Maitre
-    MOTOR_SetSpeed(LEFT, (0.5 + PID())); // Esclave
+    MOTOR_SetSpeed(LEFT, (0.25 + PID())); // Esclave
 
-    delay(500);
+    delay(100);
   }
 }
 
@@ -191,6 +190,15 @@ void algorithme()
   }
 }
 
+void reset()
+{
+
+  MOTOR_SetSpeed(RIGHT, 0.0);
+  MOTOR_SetSpeed(LEFT, 0.0);
+  compteurDroite = 0;
+  compteurGauche = 0;
+}
+
 void setup()
 {
   BoardInit();
@@ -201,16 +209,22 @@ void setup()
   pinMode(portDetecteurProximVert, INPUT);
   pinMode(portDetecteurProximRouge, INPUT);
 
-  // Serial.begin(115200);
+  Serial.begin(115200);
   // Serial.write("Début");
-  detectionSifflet(); // Attend le son du siflet
+  // detectionSifflet(); // Attend le son du siflet
+  // AVANCER();
+  while (!ROBUS_IsBumper(3))
+  {
+  }
+  //AVANCER();
 }
 
 void loop()
 {
 
-  AVANCER();
+   Serial.println(ENCODER_Read(RIGHT));
+   //Serial.println("Test");
 
-   // Reset compteur
-  delay(10);        // Delais pour décharger le CPU
+  //reset();
+  delay(10); // Delais pour décharger le CPU
 }
