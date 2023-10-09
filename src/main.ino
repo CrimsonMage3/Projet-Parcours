@@ -15,21 +15,25 @@ int positionX = 2;   // 1 = Gauche, 2 = Millieu, 3 = Droite
 int positionY = 1;   // Début = 1, Fin = 10
 int orientation = 0; // Initialise l'orientation de départ, -1 = vers la gauche, 0 = tout droit, 1 = vers la droite, 2 vers le bas
                      // Le but d'utiliser un int est de faire en sorte que quand il avance la postition en x change selon l'orientation
-double erreur = 0;
+double erreurKP = 0;
+double erreurKI = 0;
 
 long millisDebut = 0;
 long millisFin = 0;
 
-double KP = 0.0035; // 0.0006
-double KI = 0.00009;
+double KP = 0.00007; // 0.0006
+double KI = 0.0000015;
 
-int valeurAvancer = 7300;
+int valeurAvancer = 6740; // Robot A : 6682 Robot B : 6740
+int valeurTourner = 2013; // Robot A : 1985 Robot B : 2015
+float distanceRestante = 0;
+float MOTORSPEED = 0;
 
 double ValPID = 0;
 
 double PID()
 {
-  
+
   millisFin = millis();
 
   if ((millisFin - millisDebut) >= 50.0)
@@ -37,24 +41,21 @@ double PID()
     int valeurEncodeurDroit = abs(ENCODER_Read(RIGHT));
     int valeurEncodeurGauche = abs(ENCODER_Read(LEFT));
 
-    erreur = valeurEncodeurDroit - valeurEncodeurGauche;
+    erreurKP = valeurEncodeurDroit - valeurEncodeurGauche;
+    erreurKI += erreurKP;
 
-    ValPID = (erreur * KP + erreur * 0.05 * KI);
-    
-    Serial.println(erreur);
-    Serial.println(ValPID,10);
+    ValPID = (1 / 0.05) * (erreurKP * KP + erreurKI * KI);
+/*
+    Serial.println(erreurKP);
+    Serial.println(ValPID, 10);
     Serial.println("");
     Serial.println(abs(ENCODER_Read(RIGHT)));
     Serial.println(abs(ENCODER_Read(LEFT)));
     Serial.println("");
-
-
-
+*/
     millisDebut = millis();
-
   }
 
-  
   // Serial.println(ValPID);
   return ValPID;
 }
@@ -77,19 +78,27 @@ void AVANCER()
     positionY--;
   }
 
-  while (abs(ENCODER_Read(RIGHT)) <= valeurAvancer) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
-  {
-    if (compteurDroite <= valeurAvancer * 0.90)
+  while ((abs(ENCODER_Read(RIGHT))) <= valeurAvancer) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
+  { 
+    if ((abs(ENCODER_Read(RIGHT))) <= valeurAvancer * 0.40)
     {
-      MOTOR_SetSpeed(RIGHT, 0.25);                   // Maitre
-      MOTOR_SetSpeed(LEFT, (0.25  + PID())); // Esclave}
-      
+      MOTOR_SetSpeed(RIGHT, 0.30);          // Maitre
+      MOTOR_SetSpeed(LEFT, (0.30+0.01 + PID())); // Esclave
+    }
+    else if ((abs(ENCODER_Read(RIGHT))) <= valeurAvancer * 0.70)
+    {
+      MOTOR_SetSpeed(RIGHT, 0.40);          // Maitre
+      MOTOR_SetSpeed(LEFT, (0.40+0.01 + PID())); // Esclave
+    }
+    else if ((abs(ENCODER_Read(RIGHT))) <= valeurAvancer * 0.90)
+    {
+      MOTOR_SetSpeed(RIGHT, 0.20); // Maitre
+      MOTOR_SetSpeed(LEFT, (0.20+0.01 + PID()));
     }
     else
     {
-
       MOTOR_SetSpeed(RIGHT, 0.1); // Maitre
-      MOTOR_SetSpeed(LEFT, (0.1 + PID()));
+      MOTOR_SetSpeed(LEFT, (0.1+0.01 + PID()));
     }
   }
   reset();
@@ -105,16 +114,30 @@ void TOURNERDROITE()
   {
     orientation = 0;
   }
-  else
+  else if (orientation == 2)
   {
     orientation = -1;
   }
-
-  while (abs(ENCODER_Read(RIGHT)) <= 1940) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
+  else
   {
-    MOTOR_SetSpeed(RIGHT, -0.15); // Maitre
 
-    MOTOR_SetSpeed(LEFT, (0.15 + 0.0057 + PID())); // Esclave}
+    orientation = 2;
+  }
+
+  while (abs(ENCODER_Read(RIGHT)) <= valeurTourner) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
+  {
+    if ((abs(ENCODER_Read(RIGHT))) <= valeurTourner * 0.60)
+    {
+      MOTOR_SetSpeed(RIGHT, -0.35);         // Maitre
+      MOTOR_SetSpeed(LEFT, (0.35 + PID())); // Esclave
+    }
+    else
+    {
+      distanceRestante = 1 - (abs(ENCODER_Read(RIGHT)) / valeurTourner);
+      MOTORSPEED = (-0.625 * distanceRestante) + 0.725;
+      MOTOR_SetSpeed(RIGHT, -(MOTORSPEED)); // Maitre
+      MOTOR_SetSpeed(LEFT, MOTORSPEED + PID());
+    }
   }
   reset();
 }
@@ -126,20 +149,34 @@ void TOURNERGAUCHE()
   {
     orientation = -1;
   }
-  else if (orientation == 1) // Sinon il est orienté vers la gauche et reviens avec un orientation vers le nord
+  else if (orientation == -1) // Sinon il est orienté vers la gauche et reviens avec un orientation vers le nord
   {
-    orientation = 0;
+    orientation = 2;
   }
-  else
+  else if (orientation == 2)
   {
     orientation = 1;
   }
-
-  while (abs(ENCODER_Read(RIGHT)) <= 1940) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
+  else
   {
 
-    MOTOR_SetSpeed(RIGHT, 0.15);                    // Maitre
-    MOTOR_SetSpeed(LEFT, (-(0.1557 + PID()))); // Esclave
+    orientation = 0;
+  }
+
+  while (abs(ENCODER_Read(RIGHT)) <= valeurTourner) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
+  {
+    if ((abs(ENCODER_Read(RIGHT))) <= valeurTourner * 0.60)
+    {
+      MOTOR_SetSpeed(RIGHT, 0.35);             // Maitre
+      MOTOR_SetSpeed(LEFT, (-(0.35 + PID()))); // Esclave
+    }
+    else
+    {
+      distanceRestante = 1 - (abs(ENCODER_Read(RIGHT)) / valeurTourner);
+      MOTORSPEED = (-0.625 * distanceRestante) + 0.725;
+      MOTOR_SetSpeed(RIGHT, MOTORSPEED); // Maitre
+      MOTOR_SetSpeed(LEFT, -(MOTORSPEED + PID()));
+    }
   }
   reset();
 }
@@ -149,15 +186,19 @@ void detectionSifflet()
 
   double A4 = 0;
   double A5 = 0;
-
-  while ((A5 - A4) < 10)
+  for (int i = 0; i < 500; i++)
   {
-    Serial.println(A5 - A4);
-    A4 = analogRead(portBruitAmbiant);
-    A5 = analogRead(portBruitEntendue);
+    while ((A5 - A4) < 220) // Robot A 220 Robot 110
+    {
+      Serial.println(A5 - A4);
+      A4 = analogRead(portBruitAmbiant);
+      A5 = analogRead(portBruitEntendue);
+      delay(1);
+      // if(A5 - A4)
+    }
   }
 
-  delay(2000);
+  delay(1500);
 }
 
 bool Detection()
@@ -206,7 +247,9 @@ void algorithme()
         else
         {
           TOURNERGAUCHE();
+
           TOURNERGAUCHE();
+
           AVANCER();
         }
       }
@@ -215,7 +258,7 @@ void algorithme()
 
     case 3: // À droite dans le labyrinthe
 
-      if (orientation == 1 || (Detection() && (orientation == 0))) // Si il regarde à gauche et il y a rien ou si il reguarde tout droit et voit quelque chose
+      if (orientation == 1 || (Detection() && (orientation == 0))) // Si il regarde à gauche et il y a rien ou si il regarde tout droit et voit quelque chose
       {
         TOURNERGAUCHE();
       }
@@ -234,9 +277,8 @@ void reset()
 
   MOTOR_SetSpeed(RIGHT, 0.0);
   MOTOR_SetSpeed(LEFT, 0.0);
-  delay(100); // Delais pour décharger le CPU
-  compteurDroite = 0;
-  compteurGauche = 0;
+  // Delais pour décharger le CPU
+  delay(250);
   ENCODER_Reset(RIGHT);
   ENCODER_Reset(LEFT);
 }
@@ -253,12 +295,11 @@ void setup()
 
   Serial.begin(115200);
 
+  delay(100);
   // detectionSifflet(); // Attend le son du siflet
-
   while (!ROBUS_IsBumper(REAR))
   {
   }
-
   ENCODER_Reset(RIGHT);
   ENCODER_Reset(LEFT);
 }
@@ -266,6 +307,7 @@ void setup()
 void loop()
 {
 
-
- algorithme();
+  
+  algorithme();
+  
 }
