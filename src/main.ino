@@ -21,11 +21,11 @@ double erreurKI = 0;
 long millisDebut = 0;
 long millisFin = 0;
 
-double KP = 0.00007; // 0.0006
-double KI = 0.0000015;
+double KP = 0.000072; // Robot B : 0.00005
+double KI = 0.00000092; // Robot B : 0.0000018
 
 int valeurAvancer = 6740; // Robot A : 6682 Robot B : 6740
-int valeurTourner = 2013; // Robot A : 1985 Robot B : 2015
+int valeurTourner = 2017; // Robot A : 1985 Robot B : 2015
 float distanceRestante = 0;
 float MOTORSPEED = 0;
 
@@ -38,6 +38,7 @@ double PID()
 
   if ((millisFin - millisDebut) >= 50.0)
   {
+     
     int valeurEncodeurDroit = abs(ENCODER_Read(RIGHT));
     int valeurEncodeurGauche = abs(ENCODER_Read(LEFT));
 
@@ -52,7 +53,7 @@ double PID()
     Serial.println(abs(ENCODER_Read(RIGHT)));
     Serial.println(abs(ENCODER_Read(LEFT)));
     Serial.println("");
-*/
+  delay(1);
     millisDebut = millis();
   }
 
@@ -78,12 +79,14 @@ void AVANCER()
     positionY--;
   }
 
+  delay(110);
+
   while ((abs(ENCODER_Read(RIGHT))) <= valeurAvancer) // Boucle qui s'arrête selon la valeur du compteur car les encodeur sont reset à chaque utiliation du pid
   { 
     if ((abs(ENCODER_Read(RIGHT))) <= valeurAvancer * 0.40)
     {
-      MOTOR_SetSpeed(RIGHT, 0.30);          // Maitre
-      MOTOR_SetSpeed(LEFT, (0.30+0.01 + PID())); // Esclave
+      MOTOR_SetSpeed(RIGHT, 0.35);          // Maitre
+      MOTOR_SetSpeed(LEFT, (0.35 + PID())); // Esclave
     }
     else if ((abs(ENCODER_Read(RIGHT))) <= valeurAvancer * 0.70)
     {
@@ -97,8 +100,8 @@ void AVANCER()
     }
     else
     {
-      MOTOR_SetSpeed(RIGHT, 0.1); // Maitre
-      MOTOR_SetSpeed(LEFT, (0.1+0.01 + PID()));
+      MOTOR_SetSpeed(RIGHT, 0.20);          // Maitre
+      MOTOR_SetSpeed(LEFT, (0.20+ PID())); // Esclave
     }
   }
   reset();
@@ -188,13 +191,12 @@ void detectionSifflet()
   double A5 = 0;
   for (int i = 0; i < 500; i++)
   {
-    while ((A5 - A4) < 220) // Robot A 220 Robot 110
+    while ((A5 - A4) < 220) // Robot A:220 Robot B : 110
     {
       Serial.println(A5 - A4);
       A4 = analogRead(portBruitAmbiant);
       A5 = analogRead(portBruitEntendue);
-      delay(1);
-      // if(A5 - A4)
+  delay(1);
     }
   }
 
@@ -296,8 +298,11 @@ void setup()
   Serial.begin(115200);
 
   delay(100);
-  // detectionSifflet(); // Attend le son du siflet
-  while (!ROBUS_IsBumper(REAR))
+  //detectionSifflet(); // Attend le son du siflet
+  //while (!ROBUS_IsBumper(REAR))
+  //{
+  //}
+    while (!ROBUS_IsBumper(REAR))
   {
   }
   ENCODER_Reset(RIGHT);
@@ -307,7 +312,11 @@ void setup()
 void loop()
 {
 
-  
+
+  //TOURNERDROITE();
   algorithme();
+ // while (!ROBUS_IsBumper(REAR)){}
   
+ 
+
 }
