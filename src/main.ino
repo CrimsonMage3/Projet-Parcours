@@ -31,6 +31,12 @@ float MOTORSPEED = 0;
 
 double ValPID = 0;
 
+bool out = true;
+
+int delayReset = 250;
+
+int mirroir = 0; //-1 gauche 1 droite
+
 double PID()
 {
 
@@ -46,7 +52,7 @@ double PID()
     erreurKI += erreurKP;
 
     ValPID = (1 / 0.05) * (erreurKP * KP + erreurKI * KI);
-/*
+
     Serial.println(erreurKP);
     Serial.println(ValPID, 10);
     Serial.println("");
@@ -106,6 +112,19 @@ void AVANCER()
   }
   reset();
 }
+
+void avancerOverdrive(){
+
+
+      MOTOR_SetSpeed(RIGHT, 0.9);          // Maitre
+      MOTOR_SetSpeed(LEFT, (0.9+ PID())); // Esclave
+
+
+
+}
+
+
+
 void TOURNERDROITE()
 {
 
@@ -232,29 +251,14 @@ void algorithme()
 
     case 2: // Au milieu dans le labyrinthe
 
-      if (!Detection())
-      {
-        AVANCER();
-      }
-      else
-      {
+// Avancer oriention -1 ou 1 et détecte rien 
 
-        TOURNERDROITE();
 
-        if (!Detection())
-        {
 
-          AVANCER();
-        }
-        else
-        {
-          TOURNERGAUCHE();
 
-          TOURNERGAUCHE();
 
-          AVANCER();
-        }
-      }
+
+      
 
       break;
 
@@ -271,6 +275,34 @@ void algorithme()
 
       break;
     }
+  } else {
+
+    delayReset = 5;
+    AVANCER();
+    TOURNERDROITE();
+    TOURNERDROITE();
+
+    if(positionX == -1){
+
+      AVANCER();
+      AVANCER();
+      TOURNERGAUCHE();
+      AVANCER();
+      TOURNERDROITE();
+
+    } else {
+
+      AVANCER();
+      AVANCER();
+      TOURNERDROITE();
+      AVANCER();
+      TOURNERGAUCHE();
+      
+    }
+
+
+
+
   }
 }
 
@@ -280,7 +312,7 @@ void reset()
   MOTOR_SetSpeed(RIGHT, 0.0);
   MOTOR_SetSpeed(LEFT, 0.0);
   // Delais pour décharger le CPU
-  delay(250);
+  delay(delayReset);
   ENCODER_Reset(RIGHT);
   ENCODER_Reset(LEFT);
 }
@@ -296,15 +328,23 @@ void setup()
   pinMode(portDetecteurProximRouge, INPUT);
 
   Serial.begin(115200);
+  while(out){
+    if(ROBUS_IsBumper(LEFT)){
+      orientation = -1;
+    out = false;
+    }
+    if(ROBUS_IsBumper(RIGHT)){
+      orientation = 1;
+    out = false;
+    }
 
+  }
   delay(100);
-  //detectionSifflet(); // Attend le son du siflet
+  detectionSifflet(); // Attend le son du siflet
   //while (!ROBUS_IsBumper(REAR))
   //{
   //}
-    while (!ROBUS_IsBumper(REAR))
-  {
-  }
+  
   ENCODER_Reset(RIGHT);
   ENCODER_Reset(LEFT);
 }
